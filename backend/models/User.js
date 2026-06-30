@@ -22,11 +22,11 @@ const userSchema = new mongoose.Schema(
     },
     readinessScore: {
       type: Number,
-      default: 74,
+      default: 0,
     },
     targetCompany: {
       type: String,
-      default: 'JP Morgan',
+      default: 'Your Dream Company',
     },
     targetRole: {
       type: String,

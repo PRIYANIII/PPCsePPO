@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', active: true },
-    { icon: User, label: 'Profile' },
+    { icon: User, label: 'Profile'},
     { icon: Building2, label: 'Companies' },
     { icon: Map, label: 'Roadmap' },
     { icon: MessageSquare, label: 'Experiences' },
