@@ -14,10 +14,9 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', active: true },
@@ -65,7 +64,6 @@ export default function Dashboard() {
         </nav>
 
         <button
-          onClick={logout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <LogOut className="w-5 h-5" />
@@ -82,15 +80,6 @@ export default function Dashboard() {
             <p className="text-slate-500 dark:text-slate-400 mt-1">
               Here&apos;s your placement readiness overview
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <button
-              onClick={logout}
-              className="lg:hidden px-4 py-2 text-sm text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-lg hover:text-slate-900 dark:hover:text-white"
-            >
-              Logout
-            </button>
           </div>
         </div>
 
