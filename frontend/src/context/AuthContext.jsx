@@ -12,9 +12,12 @@ export function AuthProvider({ children }) {
     if (token) {
       authAPI
         .getMe()
-        .then((userData) => setUser(userData))
+        .then((userData) => {
+          setUser(userData);
+        })
         .catch(() => {
           localStorage.removeItem('token');
+          setUser(null);
         })
         .finally(() => setLoading(false));
     } else {
@@ -43,8 +46,20 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (userData) => {
+    setUser(prev => ({ ...prev, ...userData }));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      signup, 
+      logout, 
+      updateUser,
+      isAdmin: user?.role === 'admin' 
+    }}>
       {children}
     </AuthContext.Provider>
   );
