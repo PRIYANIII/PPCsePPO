@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import Navbar from './components/Navbar';
+import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
@@ -16,7 +16,6 @@ import CompanySelection from './pages/CompanySelection';
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#0b1120] flex items-center justify-center">
@@ -24,17 +23,12 @@ function PublicRoute({ children }) {
       </div>
     );
   }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (user) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
 function AdminRoute({ children }) {
   const { user, loading, isAdmin } = useAuth();
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#0b1120] flex items-center justify-center">
@@ -42,64 +36,49 @@ function AdminRoute({ children }) {
       </div>
     );
   }
-
-  if (!user || !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (!user || !isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
-function AppRoutes() {
-  const { user } = useAuth();
+// Wrap children with Layout (sidebar) for all authenticated pages
+function AuthenticatedLayout({ children }) {
+  return <Layout>{children}</Layout>;
+}
 
+function AppRoutes() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0b1120]">
-      {user && <Navbar />}
-      
       <Routes>
+        {/* Public routes (no sidebar) */}
         <Route path="/" element={<LandingPage />} />
-        
-        <Route path="/login" element={
-          <PublicRoute><Login /></PublicRoute>
-        } />
-        
-        <Route path="/signup" element={
-          <PublicRoute><Signup /></PublicRoute>
-        } />
-        
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+
+        {/* Authenticated routes (with sidebar) */}
         <Route path="/dashboard" element={
-          <ProtectedRoute><Dashboard /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><Dashboard /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/profile" element={
-          <ProtectedRoute><Profile /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><Profile /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/dsa" element={
-          <ProtectedRoute><DSAPractice /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><DSAPractice /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/dsa/topic/:topicId" element={
-          <ProtectedRoute><DSAPractice /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><DSAPractice /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/code/:questionId" element={
-          <ProtectedRoute><CodingPage /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><CodingPage /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/companies" element={
-          <ProtectedRoute><CompanySelection /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><CompanySelection /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/companies/:id" element={
-          <ProtectedRoute><CompanyPage /></ProtectedRoute>
+          <ProtectedRoute><AuthenticatedLayout><CompanyPage /></AuthenticatedLayout></ProtectedRoute>
         } />
-        
         <Route path="/admin" element={
-          <AdminRoute><AdminPanel /></AdminRoute>
+          <AdminRoute><AuthenticatedLayout><AdminPanel /></AuthenticatedLayout></AdminRoute>
         } />
-        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
