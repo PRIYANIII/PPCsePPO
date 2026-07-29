@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -51,6 +51,7 @@ export const userAPI = {
   getProfile: () => api.get('/users/profile').then(res => res.data),
   updateProfile: (updates) => api.put('/users/profile', updates).then(res => res.data),
   updatePlatformStats: (stats) => api.put('/users/platform-stats', stats).then(res => res.data),
+  syncGFG: (profileUrl) => api.post('/users/platform-stats/gfg/sync', { profileUrl }).then(res => res.data),
   getDSAProgress: () => api.get('/users/dsa-progress').then(res => res.data),
   updateDSAProgress: (questionId, progress) => api.put(`/users/dsa-progress/${questionId}`, progress).then(res => res.data),
   updateCompanyReadiness: (data) => api.put('/users/company-readiness', data).then(res => res.data),
@@ -91,6 +92,23 @@ export const adminAPI = {
   addTestCases: (id, testCases) => api.post(`/admin/questions/${id}/testcases`, { testCases }).then(res => res.data),
   createCompany: (data) => api.post('/admin/companies', data).then(res => res.data),
   updateCompany: (id, data) => api.put(`/admin/companies/${id}`, data).then(res => res.data),
+};
+
+export const aiAPI = {
+  getResume: () => api.get('/ai/resume').then(res => res.data),
+  analyzeResume: (resumeText) => api.post('/ai/resume/analyze', { resumeText }).then(res => res.data),
+  uploadResume: (file) => { const data = new FormData(); data.append('resume', file); return api.post('/ai/resume/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } }).then(res => res.data); },
+  generateReadiness: (companyId) => api.post(`/ai/readiness/${companyId}`).then(res => res.data),
+  getCoach: () => api.post('/ai/coach').then(res => res.data),
+  generateRoadmap: (weeks) => api.post('/ai/roadmap', { weeks }).then(res => res.data),
+  getRoadmap: () => api.get('/ai/roadmap').then(res => res.data),
+  updateRoadmapTask: (taskId, completed) => api.patch(`/ai/roadmap/tasks/${taskId}`, { completed }).then(res => res.data),
+  analyzeApplication: (companyId, data) => api.post(`/ai/applications/${companyId}/analyze`, data).then(res => res.data),
+  getApplications: () => api.get('/ai/applications').then(res => res.data),
+  getSheet: () => api.get('/ai/sheet').then(res => res.data),
+  generateSheet: (style) => api.post('/ai/sheet', { style }).then(res => res.data),
+  updateSheetItem: (itemId, completed) => api.patch(`/ai/sheet/items/${itemId}`, { completed }).then(res => res.data),
+  summarizeExperiences: (companyId) => api.post(`/ai/experiences/${companyId}/summary`).then(res => res.data),
 };
 
 export default api;

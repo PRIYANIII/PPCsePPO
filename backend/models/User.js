@@ -132,10 +132,10 @@ const userSchema = new mongoose.Schema({
   dsaProgress: [dsaProgressSchema],
   
   // Overall Stats
-  totalDSAQuestions: { type: Number, default: 474 },
-  totalEasyQuestions: { type: Number, default: 152 },
-  totalMediumQuestions: { type: Number, default: 186 },
-  totalHardQuestions: { type: Number, default: 136 },
+  totalDSAQuestions: { type: Number, default: 0 },
+  totalEasyQuestions: { type: Number, default: 0 },
+  totalMediumQuestions: { type: Number, default: 0 },
+  totalHardQuestions: { type: Number, default: 0 },
   
   // Study Streak
   studyStreak: {

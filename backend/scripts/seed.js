@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import User from '../models/User.js';
 import Company from '../models/Company.js';
 import DSATopic from '../models/DSATopic.js';
+import DSAQuestion from '../models/DSAQuestion.js';
 
 dotenv.config();
 
@@ -309,6 +310,23 @@ const companies = [
   }
 ];
 
+// These are runnable starter problems. Add more through the admin panel as the
+// question bank grows; topic counters are calculated from this source of truth.
+const questions = [
+  { topic: 'learn-the-basics', title: 'Print Hello World', slug: 'print-hello-world', difficulty: 'easy', description: 'Write a program that prints exactly `Hello World`.', examples: [{ input: '', output: 'Hello World', explanation: '' }], constraints: ['No input is provided.'], testCases: [{ input: '', expectedOutput: 'Hello World' }] },
+  { topic: 'basic-maths', title: 'Sum of Two Numbers', slug: 'sum-of-two-numbers', difficulty: 'easy', description: 'Read two integers and print their sum.', examples: [{ input: '4 7', output: '11', explanation: '4 + 7 = 11.' }], constraints: ['-10^9 <= a, b <= 10^9'], testCases: [{ input: '4 7', expectedOutput: '11' }, { input: '-5 8', expectedOutput: '3' }, { input: '100 200', expectedOutput: '300', isHidden: true }] },
+  { topic: 'arrays', title: 'Largest Element in an Array', slug: 'largest-element-array', difficulty: 'easy', description: 'Read n followed by n integers. Print the largest element.', examples: [{ input: '5\n2 9 1 7 4', output: '9', explanation: '9 is the greatest value.' }], constraints: ['1 <= n <= 10^5'], testCases: [{ input: '5\n2 9 1 7 4', expectedOutput: '9' }, { input: '1\n-3', expectedOutput: '-3' }, { input: '4\n10 10 2 5', expectedOutput: '10', isHidden: true }] },
+  { topic: 'arrays', title: 'Second Largest Distinct Element', slug: 'second-largest-distinct', difficulty: 'medium', description: 'Read n followed by n integers. Print the second largest distinct number, or -1 when it does not exist.', examples: [{ input: '5\n4 1 9 9 3', output: '4', explanation: 'The largest distinct value is 9 and the next is 4.' }], constraints: ['1 <= n <= 10^5'], testCases: [{ input: '5\n4 1 9 9 3', expectedOutput: '4' }, { input: '3\n5 5 5', expectedOutput: '-1' }, { input: '4\n-1 -4 -2 -3', expectedOutput: '-2', isHidden: true }] },
+  { topic: 'strings', title: 'Palindrome Check', slug: 'palindrome-check', difficulty: 'easy', description: 'Read one lowercase word and print `YES` if it is a palindrome; otherwise print `NO`.', examples: [{ input: 'level', output: 'YES', explanation: 'The word reads the same in reverse.' }], constraints: ['1 <= length <= 10^5'], testCases: [{ input: 'level', expectedOutput: 'YES' }, { input: 'career', expectedOutput: 'NO' }, { input: 'a', expectedOutput: 'YES', isHidden: true }] },
+  { topic: 'sorting-techniques', title: 'Sort an Array', slug: 'sort-an-array', difficulty: 'easy', description: 'Read n followed by n integers and print them in non-decreasing order separated by spaces.', examples: [{ input: '5\n3 1 4 1 5', output: '1 1 3 4 5', explanation: '' }], constraints: ['1 <= n <= 10^5'], testCases: [{ input: '5\n3 1 4 1 5', expectedOutput: '1 1 3 4 5' }, { input: '3\n-1 0 -2', expectedOutput: '-2 -1 0' }] },
+  { topic: 'binary-search', title: 'Binary Search', slug: 'binary-search-index', difficulty: 'easy', description: 'Read n, a sorted array of n integers, then target. Print its zero-based index or -1 if absent.', examples: [{ input: '5\n1 3 5 7 9\n7', output: '3', explanation: '' }], constraints: ['1 <= n <= 10^5'], testCases: [{ input: '5\n1 3 5 7 9\n7', expectedOutput: '3' }, { input: '4\n2 4 6 8\n5', expectedOutput: '-1' }] },
+  { topic: 'linked-list', title: 'Reverse a Sequence', slug: 'reverse-a-sequence', difficulty: 'easy', description: 'Read n followed by n integers and print the values in reverse order separated by spaces.', examples: [{ input: '4\n1 2 3 4', output: '4 3 2 1', explanation: '' }], constraints: ['1 <= n <= 10^5'], testCases: [{ input: '4\n1 2 3 4', expectedOutput: '4 3 2 1' }, { input: '1\n42', expectedOutput: '42' }] },
+  { topic: 'recursion', title: 'Factorial', slug: 'factorial', difficulty: 'easy', description: 'Read a non-negative integer n and print n factorial.', examples: [{ input: '5', output: '120', explanation: '5! = 5 × 4 × 3 × 2 × 1.' }], constraints: ['0 <= n <= 20'], testCases: [{ input: '5', expectedOutput: '120' }, { input: '0', expectedOutput: '1' }, { input: '10', expectedOutput: '3628800', isHidden: true }] },
+  { topic: 'stack-queues', title: 'Balanced Parentheses', slug: 'balanced-parentheses', difficulty: 'medium', description: 'Read a string containing only parentheses `(` and `)`. Print `YES` when it is balanced, otherwise `NO`.', examples: [{ input: '(()())', output: 'YES', explanation: '' }], constraints: ['1 <= length <= 10^5'], testCases: [{ input: '(()())', expectedOutput: 'YES' }, { input: '(()', expectedOutput: 'NO' }, { input: ')(', expectedOutput: 'NO', isHidden: true }] },
+  { topic: 'graphs', title: 'Count Connected Components', slug: 'count-connected-components', difficulty: 'medium', description: 'Read n and m, followed by m undirected edges. Print the number of connected components in vertices 1 through n.', examples: [{ input: '5 3\n1 2\n2 3\n4 5', output: '2', explanation: '' }], constraints: ['1 <= n, m <= 10^5'], testCases: [{ input: '5 3\n1 2\n2 3\n4 5', expectedOutput: '2' }, { input: '3 0', expectedOutput: '3' }] },
+  { topic: 'dynamic-programming', title: 'Climbing Stairs', slug: 'climbing-stairs', difficulty: 'easy', description: 'You can take one or two steps. Read n and print the number of distinct ways to reach step n.', examples: [{ input: '4', output: '5', explanation: '' }], constraints: ['1 <= n <= 40'], testCases: [{ input: '4', expectedOutput: '5' }, { input: '1', expectedOutput: '1' }, { input: '10', expectedOutput: '89', isHidden: true }] }
+];
+
 async function seed() {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
@@ -318,6 +336,7 @@ async function seed() {
     await User.deleteMany({ role: 'user' });
     await Company.deleteMany({});
     await DSATopic.deleteMany({});
+    await DSAQuestion.deleteMany({});
 
     // Create admin user
     const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
@@ -334,6 +353,23 @@ async function seed() {
     // Create DSA Topics
     const createdTopics = await DSATopic.insertMany(topics);
     console.log(`${createdTopics.length} DSA topics created`);
+
+    const topicIds = new Map(createdTopics.map((topic) => [topic.slug, topic._id]));
+    const questionDocuments = questions.map(({ topic, ...question }) => ({
+      ...question,
+      topicId: topicIds.get(topic),
+      companies: ['Google', 'Microsoft', 'Amazon']
+    }));
+    await DSAQuestion.insertMany(questionDocuments);
+    for (const topic of createdTopics) {
+      const topicQuestions = questionDocuments.filter((question) => question.topicId.equals(topic._id));
+      topic.totalQuestions = topicQuestions.length;
+      topic.easyCount = topicQuestions.filter((question) => question.difficulty === 'easy').length;
+      topic.mediumCount = topicQuestions.filter((question) => question.difficulty === 'medium').length;
+      topic.hardCount = topicQuestions.filter((question) => question.difficulty === 'hard').length;
+      await topic.save();
+    }
+    console.log(`${questionDocuments.length} runnable DSA questions created`);
 
     // Create Companies
     const createdCompanies = await Company.insertMany(companies);

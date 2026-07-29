@@ -4,6 +4,8 @@ import DSATopic from '../models/DSATopic.js';
 import DSAQuestion from '../models/DSAQuestion.js';
 import Company from '../models/Company.js';
 import User from '../models/User.js';
+import AIRequestLog from '../models/AIRequestLog.js';
+import AIRetryQueue from '../models/AIRetryQueue.js';
 import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
@@ -40,6 +42,14 @@ router.get('/stats', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+router.get('/audit', async (req, res) => {
+  const page = Math.max(Number(req.query.page) || 1, 1); const limit = Math.min(Number(req.query.limit) || 25, 100);
+  const filter = {}; if (req.query.success) filter.success = req.query.success === 'true'; if (req.query.provider) filter.provider = req.query.provider;
+  const [items, total] = await Promise.all([AIRequestLog.find(filter).populate('userId', 'name email').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit), AIRequestLog.countDocuments(filter)]);
+  res.json({ items, total, page, pages: Math.ceil(total / limit) });
+});
+router.get('/retry-queue', async (req, res) => res.json(await AIRetryQueue.find({ status: 'pending' }).sort({ createdAt: -1 }).limit(100)));
 
 // CRUD for DSA Topics
 router.post('/topics', [

@@ -5,6 +5,8 @@ import {
   User,
   Building2,
   BookOpen,
+  FileText,
+  Sparkles,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +20,11 @@ export default function Layout({ children }) {
   const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: User, label: 'Profile', path: '/profile' },
+    { icon: FileText, label: 'Resume', path: '/resume' },
     { icon: BookOpen, label: 'DSA Practice', path: '/dsa' },
     { icon: Building2, label: 'Companies', path: '/companies' },
+    { icon: Sparkles, label: 'AI Coach', path: '/coach' },
+    { icon: BookOpen, label: 'My Sheet', path: '/sheet' },
   ];
 
   const handleLogout = () => {

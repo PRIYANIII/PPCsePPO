@@ -15,6 +15,7 @@ const formatUser = (user) => ({
   email: user.email,
   role: user.role,
   phone: user.phone,
+  bio: user.bio,
   college: user.college,
   branch: user.branch,
   graduationYear: user.graduationYear,

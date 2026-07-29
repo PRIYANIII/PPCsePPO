@@ -2,35 +2,48 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import DSAQuestion from '../models/DSAQuestion.js';
 import Submission from '../models/Submission.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const execAsync = promisify(exec);
 const router = express.Router();
 
 // Docker-based code execution (you'll need Docker installed)
-const DOCKER_IMAGES = {
-  cpp: 'gcc:latest',
-  java: 'openjdk:latest',
-  python: 'python:3.9-slim',
-  c: 'gcc:latest'
+const LANGUAGE_CONFIG = {
+  python: { image: 'python:3.11-alpine', source: 'Main.py', command: ['python', '/workspace/Main.py'] },
+  cpp: { image: 'gcc:14', source: 'Main.cpp', command: ['sh', '-c', 'g++ -O2 -std=c++17 /workspace/Main.cpp -o /tmp/Main && /tmp/Main'] },
+  c: { image: 'gcc:14', source: 'Main.c', command: ['sh', '-c', 'gcc -O2 /workspace/Main.c -o /tmp/Main && /tmp/Main'] },
+  java: { image: 'eclipse-temurin:21-jdk-alpine', source: 'Main.java', command: ['sh', '-c', 'javac -d /tmp /workspace/Main.java && java -cp /tmp Main'] }
 };
 
-const FILE_EXTENSIONS = {
-  cpp: 'cpp',
-  java: 'java',
-  python: 'py',
-  c: 'c'
-};
+const runProcess = (command, args, { input, timeoutMs }) => new Promise((resolve) => {
+  const child = spawn(command, args, { windowsHide: true });
+  let stdout = '';
+  let stderr = '';
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGKILL');
+  }, timeoutMs);
+
+  child.stdout.on('data', (chunk) => { stdout += chunk; });
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  child.on('error', (error) => { stderr += error.message; });
+  child.on('close', (code) => {
+    clearTimeout(timer);
+    resolve({ stdout, stderr, code, timedOut });
+  });
+  child.stdin.end(input);
+});
 
 // Submit and run code
 router.post('/submit/:questionId', protect, async (req, res) => {
   try {
     const { questionId } = req.params;
     const { code, language } = req.body;
+    if (!LANGUAGE_CONFIG[language] || typeof code !== 'string' || code.length > 50_000) {
+      return res.status(400).json({ message: 'Provide supported code (C, C++, Java, or Python) under 50 KB.' });
+    }
     
     const question = await DSAQuestion.findById(questionId);
     if (!question) {
@@ -81,6 +94,10 @@ router.post('/run/:questionId', protect, async (req, res) => {
   try {
     const { code, language, customInput } = req.body;
     const question = await DSAQuestion.findById(req.params.questionId);
+    if (!question) return res.status(404).json({ message: 'Question not found' });
+    if (!LANGUAGE_CONFIG[language] || typeof code !== 'string' || code.length > 50_000) {
+      return res.status(400).json({ message: 'Provide supported code (C, C++, Java, or Python) under 50 KB.' });
+    }
     
     const testCases = customInput 
       ? [{ input: customInput, expectedOutput: '', isHidden: false }]
@@ -164,39 +181,27 @@ async function runCodeAgainstTestCases(code, language, testCases, timeLimit, mem
 
 // Execute code in a temporary file
 async function executeCode(code, language, input, timeLimit = 2, memoryLimit = 256) {
-  const id = uuidv4();
-  const extension = FILE_EXTENSIONS[language];
-  const fileName = `${id}.${extension}`;
-  const filePath = path.join('/tmp', fileName);
+  const config = LANGUAGE_CONFIG[language];
+  if (!config) return { output: '', error: 'Unsupported language', runtime: 0, memory: 0 };
+  const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'careerpilot-'));
+  const filePath = path.join(tempDirectory, config.source);
   
   try {
     await fs.writeFile(filePath, code);
     
-    let command = '';
-    let dockerImage = DOCKER_IMAGES[language];
-    
-    switch (language) {
-      case 'python':
-        command = `echo "${input}" | docker run --rm -i --memory=${memoryLimit}m --cpus=1 --network none -v ${filePath}:/code.${extension}:ro ${dockerImage} python /code.${extension}`;
-        break;
-      case 'cpp':
-        command = `docker run --rm -i --memory=${memoryLimit}m --cpus=1 --network none -v ${filePath}:/code.${extension}:ro ${dockerImage} sh -c "g++ /code.${extension} -o /code && echo '${input}' | /code"`;
-        break;
-      case 'c':
-        command = `docker run --rm -i --memory=${memoryLimit}m --cpus=1 --network none -v ${filePath}:/code.${extension}:ro ${dockerImage} sh -c "gcc /code.${extension} -o /code && echo '${input}' | /code"`;
-        break;
-      case 'java':
-        command = `docker run --rm -i --memory=${memoryLimit}m --cpus=1 --network none -v ${filePath}:/Main.${extension}:ro ${dockerImage} sh -c "javac /Main.${extension} && echo '${input}' | java -cp / Main"`;
-        break;
-    }
-    
     const startTime = Date.now();
-    const { stdout, stderr } = await execAsync(command, { timeout: timeLimit * 1000 + 5000 });
+    const result = await runProcess('docker', [
+      'run', '--rm', '-i', '--network', 'none', '--read-only',
+      '--pids-limit', '64', '--memory', `${memoryLimit}m`, '--cpus', '1',
+      '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
+      '--mount', `type=bind,src=${tempDirectory},dst=/workspace,readonly`,
+      config.image, ...config.command
+    ], { input, timeoutMs: (timeLimit * 1000) + 1500 });
     const runtime = Date.now() - startTime;
-    
+
     return {
-      output: stdout,
-      error: stderr || null,
+      output: result.stdout,
+      error: result.timedOut ? 'Time Limit Exceeded' : (result.stderr || (result.code ? 'Execution failed' : null)),
       runtime,
       memory: 0 // Docker memory usage would need additional monitoring
     };
@@ -210,7 +215,7 @@ async function executeCode(code, language, input, timeLimit = 2, memoryLimit = 2
   } finally {
     // Cleanup
     try {
-      await fs.unlink(filePath);
+      await fs.rm(tempDirectory, { recursive: true, force: true });
     } catch (err) {
       // Ignore cleanup errors
     }

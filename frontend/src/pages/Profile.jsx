@@ -8,6 +8,7 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncingGfg, setSyncingGfg] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [formData, setFormData] = useState({
     name: '',
@@ -75,6 +76,12 @@ export default function Profile() {
     } finally {
       setSaving(false);
     }
+  };
+  const syncGfg = async () => {
+    setSyncingGfg(true);
+    try { const gfg = await userAPI.syncGFG(platformStats.gfg.profileUrl); setPlatformStats((prev) => ({ ...prev, gfg })); updateUser({ platformStats: { ...platformStats, gfg } }); }
+    catch (error) { alert(error.response?.data?.message || 'GFG sync failed.'); }
+    finally { setSyncingGfg(false); }
   };
 
   const totalSolved = (platformStats.leetcode?.totalSolved || 0) + 
@@ -237,6 +244,7 @@ export default function Profile() {
                       ))}
                     </div>
                   </div>
+                  <button type="button" onClick={syncGfg} disabled={syncingGfg || !platformStats.gfg.profileUrl} className="mt-3 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">{syncingGfg ? 'Syncing GFG…' : 'Sync GFG profile'}</button>
                 </div>
 
                 <div>

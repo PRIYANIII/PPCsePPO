@@ -83,7 +83,7 @@ export default function DSAPractice() {
   };
 
   const getOverallStats = () => {
-    if (!userProgress) return { solved: 0, total: 474, easySolved: 0, mediumSolved: 0, hardSolved: 0 };
+    if (!userProgress) return { solved: 0, total: topics.reduce((sum, topic) => sum + (topic.totalQuestions || 0), 0), easySolved: 0, mediumSolved: 0, hardSolved: 0 };
     return userProgress.reduce((acc, topic) => ({
       solved: acc.solved + (topic.solvedQuestions || 0),
       total: acc.total + (topic.totalQuestions || 0),
@@ -156,11 +156,11 @@ export default function DSAPractice() {
           <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
             <div 
               className="h-full bg-blue-600 rounded-full transition-all"
-              style={{ width: `${stats.total > 0 ? (stats.solved / 474) * 100 : 0}%` }}
+              style={{ width: `${stats.total > 0 ? (stats.solved / stats.total) * 100 : 0}%` }}
             />
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            {stats.solved} / 474 solved ({Math.round((stats.solved / 474) * 100)}%)
+            {stats.solved} / {stats.total} solved ({stats.total ? Math.round((stats.solved / stats.total) * 100) : 0}%)
           </p>
         </div>
         

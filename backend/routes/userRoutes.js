@@ -61,6 +61,27 @@ router.put('/platform-stats', protect, async (req, res) => {
   }
 });
 
+// GFG does not publish a stable public stats API. This best-effort sync only reads
+// the public profile the student supplies and leaves existing values untouched if
+// the profile format changes.
+router.post('/platform-stats/gfg/sync', protect, async (req, res) => {
+  try {
+    const { profileUrl } = req.body;
+    const parsed = new URL(profileUrl);
+    if (parsed.hostname !== 'www.geeksforgeeks.org' || !parsed.pathname.startsWith('/user/')) return res.status(400).json({ message: 'Enter a public GeeksforGeeks profile URL.' });
+    const response = await fetch(parsed.toString(), { headers: { 'User-Agent': 'CareerPilot student progress sync' }, signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return res.status(422).json({ message: 'GeeksforGeeks profile could not be reached.' });
+    const html = await response.text();
+    const match = html.match(/(?:problems\s*solved|problemsSolved)[^0-9]{0,120}(\d+)/i);
+    if (!match) return res.status(422).json({ message: 'GFG changed its public profile format. Please enter your counts manually for now.' });
+    const user = await User.findById(req.user._id);
+    user.platformStats.gfg.profileUrl = parsed.toString();
+    user.platformStats.gfg.totalSolved = Number(match[1]);
+    await user.save();
+    res.json(user.platformStats.gfg);
+  } catch (error) { res.status(400).json({ message: error.message.includes('URL') ? 'Enter a valid public GFG profile URL.' : error.message }); }
+});
+
 // Get DSA progress for all topics
 router.get('/dsa-progress', protect, async (req, res) => {
   try {
@@ -119,11 +140,18 @@ router.put('/dsa-progress/:questionId', protect, async (req, res) => {
     
     // Update progress
     if (status) {
+      const wasSolved = questionProgress.status === 'solved';
       if (questionProgress.status !== 'solved' && status === 'solved') {
         topicProgress.solvedQuestions++;
         if (question.difficulty === 'easy') topicProgress.easySolved++;
         else if (question.difficulty === 'medium') topicProgress.mediumSolved++;
         else if (question.difficulty === 'hard') topicProgress.hardSolved++;
+      }
+      if (wasSolved && !isSolved) {
+        topicProgress.solvedQuestions = Math.max(0, topicProgress.solvedQuestions - 1);
+        if (question.difficulty === 'easy') topicProgress.easySolved = Math.max(0, topicProgress.easySolved - 1);
+        else if (question.difficulty === 'medium') topicProgress.mediumSolved = Math.max(0, topicProgress.mediumSolved - 1);
+        else if (question.difficulty === 'hard') topicProgress.hardSolved = Math.max(0, topicProgress.hardSolved - 1);
       }
       questionProgress.status = status;
     }
@@ -156,6 +184,13 @@ router.put('/dsa-progress/:questionId', protect, async (req, res) => {
     // Recalculate topic totals
     const allQuestions = await DSAQuestion.countDocuments({ topicId: question.topicId });
     topicProgress.totalQuestions = allQuestions;
+    const allTopicCounts = await DSAQuestion.aggregate([
+      { $group: { _id: '$difficulty', count: { $sum: 1 } } }
+    ]);
+    user.totalDSAQuestions = allTopicCounts.reduce((total, item) => total + item.count, 0);
+    user.totalEasyQuestions = allTopicCounts.find((item) => item._id === 'easy')?.count || 0;
+    user.totalMediumQuestions = allTopicCounts.find((item) => item._id === 'medium')?.count || 0;
+    user.totalHardQuestions = allTopicCounts.find((item) => item._id === 'hard')?.count || 0;
     
     await user.save();
     res.json(topicProgress);

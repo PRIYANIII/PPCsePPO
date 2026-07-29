@@ -13,6 +13,9 @@ import CodingPage from './pages/CodingPage';
 import CompanyPage from './pages/CompanyPage';
 import AdminPanel from './pages/AdminPanel';
 import CompanySelection from './pages/CompanySelection';
+import Resume from './pages/Resume';
+import AICoach from './pages/AICoach';
+import PersonalizedSheet from './pages/PersonalizedSheet';
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
@@ -61,6 +64,13 @@ function AppRoutes() {
         <Route path="/profile" element={
           <ProtectedRoute><AuthenticatedLayout><Profile /></AuthenticatedLayout></ProtectedRoute>
         } />
+        <Route path="/resume" element={
+          <ProtectedRoute><AuthenticatedLayout><Resume /></AuthenticatedLayout></ProtectedRoute>
+        } />
+        <Route path="/coach" element={
+          <ProtectedRoute><AuthenticatedLayout><AICoach /></AuthenticatedLayout></ProtectedRoute>
+        } />
+        <Route path="/sheet" element={<ProtectedRoute><AuthenticatedLayout><PersonalizedSheet /></AuthenticatedLayout></ProtectedRoute>} />
         <Route path="/dsa" element={
           <ProtectedRoute><AuthenticatedLayout><DSAPractice /></AuthenticatedLayout></ProtectedRoute>
         } />

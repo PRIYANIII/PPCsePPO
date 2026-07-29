@@ -4,7 +4,7 @@ import {
   Building2, TrendingUp, Target, BookOpen, Users, 
   DollarSign, Award, ArrowLeft, Star, Clock, CheckCircle2 
 } from 'lucide-react';
-import { companyAPI, userAPI } from '../api/client';
+import { aiAPI, companyAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function CompanyPage() {
@@ -15,6 +15,14 @@ export default function CompanyPage() {
   const [readiness, setReadiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [generatingReadiness, setGeneratingReadiness] = useState(false);
+  const [readinessError, setReadinessError] = useState('');
+  const [experienceSummary, setExperienceSummary] = useState(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [jobRole, setJobRole] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [atsReport, setAtsReport] = useState(null);
+  const [analyzingAts, setAnalyzingAts] = useState(false);
 
   useEffect(() => {
     loadCompany();
@@ -30,6 +38,25 @@ export default function CompanyPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateReadiness = async () => {
+    setGeneratingReadiness(true); setReadinessError('');
+    try { setReadiness(await aiAPI.generateReadiness(id)); }
+    catch (error) { setReadinessError(error.response?.data?.message || 'Could not generate readiness.'); }
+    finally { setGeneratingReadiness(false); }
+  };
+  const summarizeExperiences = async () => {
+    setSummarizing(true);
+    try { setExperienceSummary(await aiAPI.summarizeExperiences(id)); }
+    catch (error) { setReadinessError(error.response?.data?.message || 'Could not summarize experiences.'); }
+    finally { setSummarizing(false); }
+  };
+  const analyzeAts = async (event) => {
+    event.preventDefault(); setAnalyzingAts(true); setReadinessError('');
+    try { setAtsReport(await aiAPI.analyzeApplication(id, { role: jobRole, jobDescription })); }
+    catch (error) { setReadinessError(error.response?.data?.message || 'Could not create ATS report.'); }
+    finally { setAnalyzingAts(false); }
   };
 
   if (loading) {
@@ -101,8 +128,10 @@ export default function CompanyPage() {
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Readiness</p>
               </div>
             )}
+            <button onClick={generateReadiness} disabled={generatingReadiness} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-60">{generatingReadiness ? 'Generating…' : readiness ? 'Refresh AI readiness' : 'Generate AI readiness'}</button>
           </div>
         </div>
+        {readinessError && <p className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">{readinessError}</p>}
 
         {/* Navigation Tabs */}
         <div className="bg-white dark:bg-[#131c31] rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-6">
@@ -158,6 +187,11 @@ export default function CompanyPage() {
                     </div>
                   </div>
                 </div>
+                <form onSubmit={analyzeAts} className="p-5 bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-900 rounded-xl">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">Company-specific ATS report</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Paste the role and job description you are applying to. Gemini matches it against your saved resume.</p>
+                  <div className="mt-4 grid md:grid-cols-3 gap-3"><input required value={jobRole} onChange={(e) => setJobRole(e.target.value)} placeholder="Role, e.g. SDE Intern" className="px-3 py-2 rounded-lg border dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-white" /><textarea required value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} rows={3} placeholder="Paste company/job requirements…" className="md:col-span-2 px-3 py-2 rounded-lg border dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-white" /></div><button disabled={analyzingAts} className="mt-3 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg disabled:opacity-60">{analyzingAts ? 'Analyzing…' : 'Analyze my ATS match'}</button>
+                  {atsReport && <div className="mt-4 p-4 bg-white/70 dark:bg-slate-900/30 rounded-lg"><p className="font-bold text-purple-700 dark:text-purple-300">ATS match: {atsReport.analysis?.atsScore}/100</p><p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{atsReport.analysis?.summary}</p><p className="mt-2 text-sm text-green-700 dark:text-green-300">Matched: {atsReport.analysis?.matchedSkills?.join(', ') || '—'}</p><p className="mt-1 text-sm text-red-700 dark:text-red-300">Missing: {atsReport.analysis?.missingSkills?.join(', ') || '—'}</p></div>}
+                </form>
               </div>
             )}
 
@@ -210,7 +244,8 @@ export default function CompanyPage() {
 
             {activeTab === 'experiences' && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Interview Experiences</h3>
+                <div className="flex justify-between items-center"><h3 className="font-semibold text-slate-900 dark:text-white mb-4">Interview Experiences</h3><button onClick={summarizeExperiences} disabled={summarizing || !company.interviewExperiences?.length} className="mb-4 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg disabled:opacity-50">{summarizing ? 'Summarizing…' : '✨ AI Summary'}</button></div>
+                {experienceSummary && <div className="p-4 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-900 rounded-xl"><p className="font-semibold text-purple-800 dark:text-purple-200">AI interview pattern summary</p><p className="text-sm mt-2 text-slate-700 dark:text-slate-300">Difficulty: {experienceSummary.difficulty}</p><p className="text-sm mt-2 text-slate-700 dark:text-slate-300">Most asked: {experienceSummary.mostAskedTopics?.join(', ')}</p><p className="text-sm mt-2 text-slate-700 dark:text-slate-300">Pattern: {experienceSummary.roundPattern?.join(' → ')}</p></div>}
                 {company.interviewExperiences?.map((exp, index) => (
                   <div key={index} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
