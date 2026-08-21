@@ -145,7 +145,7 @@ export default function LandingPage() {
               <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full" />
               <div className="relative bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden">
                 <div className="p-5">
-                  <p className="text-white font-semibold">Good Evening, Priyani 👋</p>
+                  <p className="text-white font-semibold">Good Evening, Xyz 👋</p>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
                       <p className="text-xs text-slate-400 mb-2">Overall Readiness</p>
